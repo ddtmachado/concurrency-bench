@@ -114,3 +114,58 @@ func BenchmarkMutex(b *testing.B) {
 		}
 	})
 }
+
+func BenchmarkMapSync(b *testing.B) {
+	type A struct {
+		intValue int
+	}
+
+	m := sync.Map{}
+
+	b.ResetTimer()
+
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			//Bad performance as we update the value in the map everytime
+			newA := &A{rand.Intn(100)}
+			m.Store("a", newA)
+		}
+	})
+
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			m.Load("a")
+		}
+	})
+}
+
+func BenchmarkMapSync2(b *testing.B) {
+	type A struct {
+		intValue atomic.Int32
+	}
+
+	m := sync.Map{}
+
+	b.ResetTimer()
+
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			//Best performance as we're updating only the internal value of the struct pointed by the map
+			if v, found := m.Load("a"); found {
+				v.(*A).intValue.Store(int32(rand.Intn(100)))
+			} else {
+				newA := &A{}
+				newA.intValue.Store(int32(rand.Intn(100)))
+				m.Store("a", newA)
+			}
+		}
+	})
+
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			if v, found := m.Load("a"); found {
+				v.(*A).intValue.Load()
+			}
+		}
+	})
+}
