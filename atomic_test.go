@@ -120,21 +120,25 @@ func BenchmarkMapSync(b *testing.B) {
 		intValue int
 	}
 
+	testKeys := []string{"a", "b", "c", "d", "e", "f", "g", "h", "i", "j"}
+
 	m := sync.Map{}
 
 	b.ResetTimer()
 
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
+			key := testKeys[rand.Intn(10)]
 			//Bad performance as we update the value in the map everytime
 			newA := &A{rand.Intn(100)}
-			m.Store("a", newA)
+			m.Store(key, newA)
 		}
 	})
 
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			m.Load("a")
+			key := testKeys[rand.Intn(10)]
+			m.Load(key)
 		}
 	})
 }
@@ -144,26 +148,30 @@ func BenchmarkMapSync2(b *testing.B) {
 		intValue atomic.Int32
 	}
 
+	testKeys := []string{"a", "b", "c", "d", "e", "f", "g", "h", "i", "j"}
+
 	m := sync.Map{}
 
 	b.ResetTimer()
 
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
+			key := testKeys[rand.Intn(10)]
 			//Best performance as we're updating only the internal value of the struct pointed by the map
-			if v, found := m.Load("a"); found {
+			if v, found := m.Load(key); found {
 				v.(*A).intValue.Store(int32(rand.Intn(100)))
 			} else {
 				newA := &A{}
 				newA.intValue.Store(int32(rand.Intn(100)))
-				m.Store("a", newA)
+				m.Store(key, newA)
 			}
 		}
 	})
 
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			if v, found := m.Load("a"); found {
+			key := testKeys[rand.Intn(10)]
+			if v, found := m.Load(key); found {
 				v.(*A).intValue.Load()
 			}
 		}
